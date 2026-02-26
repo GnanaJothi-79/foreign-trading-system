@@ -1,45 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTrades } from '../../context/TradeContext';
+import CreateTradeOrder from './CreateTradeOrder';
+import { generateInvoice, generateBillOfLading } from '../../services/documentService';
 
 const ImporterDashboard = () => {
   const navigate = useNavigate();
-  const [showNewOrderForm, setShowNewOrderForm] = useState(false);
-  const [newOrder, setNewOrder] = useState({
-    productName: '',
-    quantity: '',
-    unitPrice: '',
-    currency: 'USD',
-    exporter: ''
-  });
+  const { trades, initiatePayment, getTradesByStatus } = useTrades();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState(null);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewOrder({
-      ...newOrder,
-      [name]: value
-    });
+  const importerTrades = trades.filter(t => t.importer === 'ImportCo India');
+  
+  const pendingTrades = importerTrades.filter(t => t.status === 'pending_review');
+  const activeTrades = importerTrades.filter(t => 
+    ['accepted', 'payment_initiated', 'verified'].includes(t.status)
+  );
+  const completedTrades = importerTrades.filter(t => t.status === 'completed');
+
+  const handleDownloadDocument = (trade, documentType) => {
+    let doc;
+    if (documentType === 'invoice') {
+      doc = generateInvoice(trade);
+    } else if (documentType === 'bill') {
+      doc = generateBillOfLading(trade);
+    }
+    
+    if (doc) {
+      doc.save(`${documentType}_${trade.id}.pdf`);
+    }
   };
 
-  const handleCreateOrder = (e) => {
-    e.preventDefault();
-    // Here you would typically send this data to your backend
-    console.log('New Order:', newOrder);
-    // Reset form and close it
-    setNewOrder({
-      productName: '',
-      quantity: '',
-      unitPrice: '',
-      currency: 'USD',
-      exporter: ''
-    });
-    setShowNewOrderForm(false);
-    // Show success message or update orders list
-    alert('Trade order created successfully!');
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending_review: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending Review' },
+      accepted: { color: 'bg-green-100 text-green-800', text: 'Accepted' },
+      payment_initiated: { color: 'bg-blue-100 text-blue-800', text: 'Payment Initiated' },
+      verified: { color: 'bg-purple-100 text-purple-800', text: 'Funds Verified' },
+      completed: { color: 'bg-gray-100 text-gray-800', text: 'Completed' }
+    };
+    
+    const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', text: status };
+    
+    return (
+      <span className={`${config.color} px-3 py-1 rounded-full text-sm font-medium`}>
+        {config.text}
+      </span>
+    );
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
+      {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-16">
@@ -67,14 +79,14 @@ const ImporterDashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-8">
-        {/* Header with New Trade Order Button */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Importer Dashboard</h2>
             <p className="text-gray-600">Create and manage your trade orders</p>
           </div>
           <button
-            onClick={() => setShowNewOrderForm(!showNewOrderForm)}
+            onClick={() => setShowCreateForm(true)}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 flex items-center space-x-2"
           >
             <span>New Trade Order</span>
@@ -84,159 +96,109 @@ const ImporterDashboard = () => {
           </button>
         </div>
 
-        {/* Stats Card - Total Trades */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 col-span-1">
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Total Trades</h3>
-            <p className="text-3xl font-bold text-gray-800">3</p>
+            <p className="text-3xl font-bold text-gray-800">{importerTrades.length}</p>
           </div>
-          {/* Empty columns for spacing - adjust based on your layout needs */}
-          <div className="col-span-3"></div>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Pending</h3>
+            <p className="text-3xl font-bold text-yellow-500">{pendingTrades.length}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Active</h3>
+            <p className="text-3xl font-bold text-blue-500">{activeTrades.length}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Completed</h3>
+            <p className="text-3xl font-bold text-green-500">{completedTrades.length}</p>
+          </div>
         </div>
 
-        {/* New Trade Order Form - Conditionally Rendered */}
-        {showNewOrderForm && (
-          <div className="bg-white rounded-lg shadow-sm mb-8 border-2 border-blue-200">
-            <div className="px-6 py-4 bg-blue-50 border-b border-blue-200">
-              <h3 className="text-xl font-semibold text-blue-800">Create Trade Order</h3>
-            </div>
-            
-            <form onSubmit={handleCreateOrder} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Product Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Name
-                  </label>
-                  <input
-                    type="text"
-                    name="productName"
-                    value={newOrder.productName}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="Enter product name"
-                    required
-                  />
-                </div>
-
-                {/* Quantity */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    name="quantity"
-                    value={newOrder.quantity}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="Enter quantity"
-                    required
-                    min="1"
-                  />
-                </div>
-
-                {/* Unit Price */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unit Price
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="number"
-                      name="unitPrice"
-                      value={newOrder.unitPrice}
-                      onChange={handleInputChange}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="Enter price"
-                      required
-                      min="0"
-                      step="0.01"
-                    />
-                    <select
-                      name="currency"
-                      value={newOrder.currency}
-                      onChange={handleInputChange}
-                      className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                    >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="INR">INR</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Select Exporter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Exporter
-                  </label>
-                  <select
-                    name="exporter"
-                    value={newOrder.exporter}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                    required
-                  >
-                    <option value="">Select an exporter</option>
-                    <option value="Export Ltd USA">Export Ltd USA</option>
-                    <option value="Global Exports UK">Global Exports UK</option>
-                    <option value="Euro Trading Co">Euro Trading Co</option>
-                    <option value="Asia Export Group">Asia Export Group</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Form Buttons */}
-              <div className="flex justify-end space-x-4 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowNewOrderForm(false)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
-                >
-                  Create Order
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Your Trade Orders Section */}
+        {/* Trade Orders */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-xl font-semibold text-gray-800">Your Trade Orders</h3>
           </div>
           
           <div className="divide-y divide-gray-200">
-            {/* Order 1 - Electronic Components */}
-            <div className="p-6 hover:bg-gray-50">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Electronic Components</h4>
-              <p className="text-gray-600 mb-1">5000 units × USD 12.5 = USD 62,500</p>
-              <p className="text-sm text-gray-500">Exporter: Export Ltd USA</p>
-            </div>
-
-            {/* Order 2 - Industrial Machinery Parts */}
-            <div className="p-6 hover:bg-gray-50">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Industrial Machinery Parts</h4>
-              <p className="text-gray-600 mb-1">200 units × EUR 450 = EUR 90,000</p>
-              <p className="text-sm text-gray-500">Exporter: Export Ltd USA</p>
-            </div>
-
-            {/* Order 3 - Raw Cotton Bales */}
-            <div className="p-6 hover:bg-gray-50">
-              <h4 className="text-lg font-semibold text-gray-800 mb-2">Raw Cotton Bales</h4>
-              <p className="text-gray-600">1000 units × USD 85 = USD 85,000</p>
-            </div>
+            {importerTrades.map(trade => (
+              <div key={trade.id} className="p-6 hover:bg-gray-50">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-800">{trade.productName}</h4>
+                    <p className="text-sm text-gray-500 mt-1">Order ID: {trade.id}</p>
+                  </div>
+                  {getStatusBadge(trade.status)}
+                </div>
+                
+                <p className="text-gray-600 mb-2">
+                  {trade.quantity.toLocaleString()} units × {trade.currency} {trade.unitPrice.toFixed(2)} = {trade.currency} {trade.totalAmount.toLocaleString()}
+                </p>
+                
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-500">Exporter: {trade.exporter}</p>
+                  
+                  <div className="flex space-x-3">
+                    {/* Action buttons based on status */}
+                    {trade.status === 'accepted' && (
+                      <button
+                        onClick={() => initiatePayment(trade.id)}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700"
+                      >
+                        Pay Now
+                      </button>
+                    )}
+                    
+                    {trade.status === 'completed' && (
+                      <>
+                        <button
+                          onClick={() => handleDownloadDocument(trade, 'invoice')}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          Download Invoice
+                        </button>
+                        <button
+                          onClick={() => handleDownloadDocument(trade, 'bill')}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          Download B/L
+                        </button>
+                      </>
+                    )}
+                    
+                    {trade.documents && trade.documents.length > 0 && (
+                      <button className="text-gray-500 hover:text-gray-700">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                {trade.convertedAmount && (
+                  <p className="text-sm text-green-600 font-medium mt-2">
+                    Converted: {trade.convertedAmount}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* Create Trade Order Modal */}
+      {showCreateForm && (
+        <CreateTradeOrder
+          onClose={() => setShowCreateForm(false)}
+          onSuccess={(newTrade) => {
+            setShowCreateForm(false);
+            alert(`Trade order created successfully! Order ID: ${newTrade.id}`);
+          }}
+        />
+      )}
     </div>
   );
 };

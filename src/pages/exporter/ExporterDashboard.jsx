@@ -1,12 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTrades } from '../../context/TradeContext';
+import { generateInvoice } from '../../services/documentService';
 
 const ExporterDashboard = () => {
   const navigate = useNavigate();
+  const { trades, updateTradeStatus, getTradesByStatus } = useTrades();
+  const [selectedTrade, setSelectedTrade] = useState(null);
+
+  const exporterTrades = trades.filter(t => t.exporter === 'Export Ltd USA');
+  
+  const pendingReview = exporterTrades.filter(t => t.status === 'pending_review');
+  const accepted = exporterTrades.filter(t => t.status === 'accepted');
+  const paymentInitiated = exporterTrades.filter(t => t.status === 'payment_initiated');
+  const completed = exporterTrades.filter(t => t.status === 'completed');
+
+  const handleAccept = (tradeId) => {
+    updateTradeStatus(tradeId, 'accepted');
+  };
+
+  const handleReject = (tradeId) => {
+    updateTradeStatus(tradeId, 'rejected');
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      pending_review: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending Review' },
+      accepted: { color: 'bg-green-100 text-green-800', text: 'Accepted' },
+      payment_initiated: { color: 'bg-blue-100 text-blue-800', text: 'Payment Initiated' },
+      verified: { color: 'bg-purple-100 text-purple-800', text: 'Funds Verified' },
+      completed: { color: 'bg-gray-100 text-gray-800', text: 'Completed' },
+      rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' }
+    };
+    
+    const config = statusConfig[status] || { color: 'bg-gray-100 text-gray-800', text: status };
+    
+    return (
+      <span className={`${config.color} px-3 py-1 rounded-full text-sm font-medium`}>
+        {config.text}
+      </span>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
+      {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center h-16">
@@ -41,92 +79,109 @@ const ExporterDashboard = () => {
           <p className="text-gray-600">Review trades and manage shipments</p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Total Trades</h3>
-            <p className="text-3xl font-bold text-gray-800">3</p>
+            <p className="text-3xl font-bold text-gray-800">{exporterTrades.length}</p>
           </div>
-          
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Pending Review</h3>
-            <p className="text-3xl font-bold text-yellow-500">1</p>
+            <p className="text-3xl font-bold text-yellow-500">{pendingReview.length}</p>
           </div>
-          
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 mb-2">To Ship</h3>
-            <p className="text-3xl font-bold text-blue-500">0</p>
+            <p className="text-3xl font-bold text-blue-500">{paymentInitiated.length}</p>
           </div>
-          
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-sm font-medium text-gray-500 mb-2">Completed</h3>
-            <p className="text-3xl font-bold text-green-500">1</p>
+            <p className="text-3xl font-bold text-green-500">{completed.length}</p>
           </div>
         </div>
 
         {/* Pending Review Section */}
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">Pending Review</h3>
-          </div>
-          
-          <div className="p-6">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h4 className="text-lg font-semibold text-gray-800 mb-2">Industrial Machinery Parts</h4>
-                <p className="text-sm text-gray-600 mb-3">From: ImportCo India • 200 units x EUR 450</p>
-                <div className="flex space-x-3">
-                  <button className="border border-red-500 text-red-500 px-6 py-2 rounded-lg font-medium hover:bg-red-50">
-                    Reject
-                  </button>
-                  <button className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700">
-                    Accept
-                  </button>
+        {pendingReview.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm mb-6">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800">Pending Review</h3>
+            </div>
+            
+            {pendingReview.map(trade => (
+              <div key={trade.id} className="p-6 border-b last:border-b-0">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-2">{trade.productName}</h4>
+                    <p className="text-sm text-gray-600 mb-3">
+                      From: {trade.importer} • {trade.quantity} units x {trade.currency} {trade.unitPrice}
+                    </p>
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => handleReject(trade.id)}
+                        className="border border-red-500 text-red-500 px-6 py-2 rounded-lg font-medium hover:bg-red-50"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleAccept(trade.id)}
+                        className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700"
+                      >
+                        Accept
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl font-bold text-gray-800">
+                      {trade.currency} {trade.totalAmount.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xl font-bold text-gray-800">EUR 90,000</p>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* All Trades Section */}
+        {/* All Trades */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800">All Trades</h3>
           </div>
           
           <div className="divide-y divide-gray-200">
-            {/* Electronic Components */}
-            <div className="p-6 hover:bg-gray-50">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Electronic Components</h4>
-                  <p className="text-sm text-yellow-600 font-medium mb-1">Payment Initiated</p>
-                  <p className="text-sm text-gray-500">ImportCo India • USD 62,500</p>
+            {exporterTrades.map(trade => (
+              <div key={trade.id} className="p-6 hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-2">{trade.productName}</h4>
+                    <div className="mb-2">
+                      {getStatusBadge(trade.status)}
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {trade.importer} • {trade.currency} {trade.totalAmount.toLocaleString()}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    {trade.status === 'payment_initiated' && (
+                      <button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
+                        Ship
+                      </button>
+                    )}
+                    
+                    {trade.status === 'verified' && (
+                      <button className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700">
+                        Confirm Shipment
+                      </button>
+                    )}
+                    
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                </button>
               </div>
-            </div>
-
-            {/* Raw Cotton Bales */}
-            <div className="p-6 hover:bg-gray-50">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800 mb-2">Raw Cotton Bales</h4>
-                  <p className="text-sm text-green-600 font-medium mb-1">Paid</p>
-                  <p className="text-sm text-gray-500">ImportCo India • USD 85,000</p>
-                </div>
-                <button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">
-                  Ship
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
