@@ -47,7 +47,7 @@ export const TradeProvider = ({ children }) => {
       totalAmount: 85000,
       importer: 'ImportCo India',
       exporter: 'Export Ltd USA',
-      status: 'paid',
+      status: 'completed',
       date: '2026-02-23',
       documents: ['invoice.pdf', 'bill_of_lading.pdf']
     }
@@ -62,7 +62,7 @@ export const TradeProvider = ({ children }) => {
     JPY: 0.0067
   });
 
-  // Create new trade order (Importer)
+  // Create new trade order
   const createTradeOrder = (orderData) => {
     const newTrade = {
       id: `TRD${String(trades.length + 1).padStart(3, '0')}`,
@@ -86,46 +86,23 @@ export const TradeProvider = ({ children }) => {
     return newTrade;
   };
 
-  // Accept/Reject trade (Exporter)
+  // Update trade status
   const updateTradeStatus = (tradeId, status) => {
     const updatedTrades = trades.map(trade => 
       trade.id === tradeId ? { ...trade, status } : trade
     );
     setTrades(updatedTrades);
-
-    if (status === 'accepted') {
-      addNotification({
-        userId: 'importer',
-        message: `Trade order accepted. Please initiate payment.`,
-        tradeId,
-        type: 'order_accepted'
-      });
-      
-      addNotification({
-        userId: 'bank',
-        message: `New transaction ready for verification`,
-        tradeId,
-        type: 'verify_funds'
-      });
-    }
   };
 
-  // Initiate payment (Importer)
+  // Initiate payment
   const initiatePayment = (tradeId) => {
     const updatedTrades = trades.map(trade =>
       trade.id === tradeId ? { ...trade, status: 'payment_initiated' } : trade
     );
     setTrades(updatedTrades);
-
-    addNotification({
-      userId: 'bank',
-      message: `Payment initiated - needs verification`,
-      tradeId,
-      type: 'verify_funds'
-    });
   };
 
-  // Verify funds and convert currency (Bank)
+  // Verify and convert funds
   const verifyAndConvertFunds = (tradeId, convertedAmount) => {
     const updatedTrades = trades.map(trade =>
       trade.id === tradeId ? { 
@@ -136,35 +113,14 @@ export const TradeProvider = ({ children }) => {
       } : trade
     );
     setTrades(updatedTrades);
-
-    addNotification({
-      userId: 'exporter',
-      message: `Funds verified. Ready to ship.`,
-      tradeId,
-      type: 'funds_verified'
-    });
   };
 
-  // Transfer funds (Bank)
+  // Transfer funds
   const transferFunds = (tradeId) => {
     const updatedTrades = trades.map(trade =>
       trade.id === tradeId ? { ...trade, status: 'completed' } : trade
     );
     setTrades(updatedTrades);
-
-    addNotification({
-      userId: 'importer',
-      message: `Payment completed. Documents ready.`,
-      tradeId,
-      type: 'payment_completed'
-    });
-
-    addNotification({
-      userId: 'exporter',
-      message: `Payment received. Shipment confirmed.`,
-      tradeId,
-      type: 'payment_received'
-    });
   };
 
   // Add document to trade

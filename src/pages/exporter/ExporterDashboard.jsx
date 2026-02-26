@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTrades } from '../../context/TradeContext';
-import { generateInvoice } from '../../services/documentService';
 
 const ExporterDashboard = () => {
   const navigate = useNavigate();
-  const { trades, updateTradeStatus, getTradesByStatus } = useTrades();
+  const { trades, updateTradeStatus } = useTrades();
   const [selectedTrade, setSelectedTrade] = useState(null);
 
   const exporterTrades = trades.filter(t => t.exporter === 'Export Ltd USA');
