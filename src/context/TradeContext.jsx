@@ -11,7 +11,89 @@ export const useTrades = () => {
 };
 
 export const TradeProvider = ({ children }) => {
-  const [trades, setTrades] = useState([
+  // Exporters and their products
+  const [exporters] = useState([
+    {
+      id: 'EXP001',
+      companyName: 'Export Ltd USA',
+      country: 'USA',
+      rating: 4.8,
+      verified: true,
+      products: [
+        {
+          id: 'PRD001',
+          name: 'Electronic Components',
+          category: 'Electronics',
+          price: 12.5,
+          currency: 'USD',
+          available: 10000,
+          unit: 'units',
+          description: 'High-quality electronic components'
+        },
+        {
+          id: 'PRD002',
+          name: 'Industrial Machinery Parts',
+          category: 'Machinery',
+          price: 450,
+          currency: 'EUR',
+          available: 500,
+          unit: 'units',
+          description: 'Precision machinery parts'
+        }
+      ]
+    },
+    {
+      id: 'EXP002',
+      companyName: 'Global Exports UK',
+      country: 'UK',
+      rating: 4.6,
+      verified: true,
+      products: [
+        {
+          id: 'PRD003',
+          name: 'Textiles',
+          category: 'Textile',
+          price: 25,
+          currency: 'GBP',
+          available: 5000,
+          unit: 'meters',
+          description: 'High-quality cotton textiles'
+        },
+        {
+          id: 'PRD004',
+          name: 'Raw Cotton Bales',
+          category: 'Agriculture',
+          price: 85,
+          currency: 'USD',
+          available: 2000,
+          unit: 'bales',
+          description: 'Premium raw cotton'
+        }
+      ]
+    },
+    {
+      id: 'EXP003',
+      companyName: 'Euro Trading Co',
+      country: 'Germany',
+      rating: 4.9,
+      verified: true,
+      products: [
+        {
+          id: 'PRD005',
+          name: 'Automotive Parts',
+          category: 'Automotive',
+          price: 120,
+          currency: 'EUR',
+          available: 3000,
+          unit: 'units',
+          description: 'German automotive components'
+        }
+      ]
+    }
+  ]);
+
+  // Trade Orders
+  const [tradeOrders, setTradeOrders] = useState([
     {
       id: 'TRD001',
       productName: 'Electronic Components',
@@ -19,10 +101,22 @@ export const TradeProvider = ({ children }) => {
       unitPrice: 12.5,
       currency: 'USD',
       totalAmount: 62500,
-      importer: 'ImportCo India',
-      exporter: 'Export Ltd USA',
+      importer: {
+        id: 'IMP001',
+        companyName: 'ImportCo India',
+        bankId: 'BANK001'
+      },
+      exporter: {
+        id: 'EXP001',
+        companyName: 'Export Ltd USA',
+        bankId: 'BANK002'
+      },
+      productId: 'PRD001',
       status: 'payment_initiated',
-      date: '2026-02-25',
+      orderDate: '2026-02-25',
+      paymentStatus: 'pending',
+      bankVerified: false,
+      forexConverted: false,
       documents: []
     },
     {
@@ -32,10 +126,22 @@ export const TradeProvider = ({ children }) => {
       unitPrice: 450,
       currency: 'EUR',
       totalAmount: 90000,
-      importer: 'ImportCo India',
-      exporter: 'Export Ltd USA',
+      importer: {
+        id: 'IMP001',
+        companyName: 'ImportCo India',
+        bankId: 'BANK001'
+      },
+      exporter: {
+        id: 'EXP001',
+        companyName: 'Export Ltd USA',
+        bankId: 'BANK002'
+      },
+      productId: 'PRD002',
       status: 'pending_review',
-      date: '2026-02-24',
+      orderDate: '2026-02-24',
+      paymentStatus: 'pending',
+      bankVerified: false,
+      forexConverted: false,
       documents: []
     },
     {
@@ -45,16 +151,50 @@ export const TradeProvider = ({ children }) => {
       unitPrice: 85,
       currency: 'USD',
       totalAmount: 85000,
-      importer: 'ImportCo India',
-      exporter: 'Export Ltd USA',
+      importer: {
+        id: 'IMP001',
+        companyName: 'ImportCo India',
+        bankId: 'BANK001'
+      },
+      exporter: {
+        id: 'EXP002',
+        companyName: 'Global Exports UK',
+        bankId: 'BANK003'
+      },
+      productId: 'PRD004',
       status: 'completed',
-      date: '2026-02-23',
+      orderDate: '2026-02-23',
+      paymentStatus: 'completed',
+      bankVerified: true,
+      forexConverted: true,
       documents: ['invoice.pdf', 'bill_of_lading.pdf']
     }
   ]);
 
-  const [notifications, setNotifications] = useState([]);
-  const [exchangeRates, setExchangeRates] = useState({
+  // Banks
+  const [banks] = useState([
+    {
+      id: 'BANK001',
+      name: 'State Bank of India',
+      swiftCode: 'SBININBB',
+      country: 'India'
+    },
+    {
+      id: 'BANK002',
+      name: 'JPMorgan Chase',
+      swiftCode: 'CHASUS33',
+      country: 'USA'
+    },
+    {
+      id: 'BANK003',
+      name: 'HSBC UK',
+      swiftCode: 'HBUKGB4B',
+      country: 'UK'
+    }
+  ]);
+
+  // Exchange Rates
+  const [exchangeRates] = useState({
     USD: 1,
     EUR: 1.09,
     GBP: 1.26,
@@ -62,121 +202,148 @@ export const TradeProvider = ({ children }) => {
     JPY: 0.0067
   });
 
+  // Get products available for importer
+  const getAvailableProducts = () => {
+    let allProducts = [];
+    exporters.forEach(exporter => {
+      exporter.products.forEach(product => {
+        allProducts.push({
+          ...product,
+          exporterId: exporter.id,
+          exporterName: exporter.companyName,
+          exporterCountry: exporter.country,
+          exporterRating: exporter.rating
+        });
+      });
+    });
+    return allProducts;
+  };
+
+  // Get orders received by exporter
+  const getExporterOrders = (exporterId) => {
+    return tradeOrders.filter(order => order.exporter.id === exporterId);
+  };
+
+  // Get orders by importer
+  const getImporterOrders = (importerId) => {
+    return tradeOrders.filter(order => order.importer.id === importerId);
+  };
+
+  // Get pending bank verifications
+  const getPendingVerifications = () => {
+    return tradeOrders.filter(order => 
+      order.status === 'payment_initiated' && !order.bankVerified
+    );
+  };
+
   // Create new trade order
   const createTradeOrder = (orderData) => {
-    const newTrade = {
-      id: `TRD${String(trades.length + 1).padStart(3, '0')}`,
+    const exporter = exporters.find(e => e.id === orderData.exporterId);
+    const product = exporter?.products.find(p => p.id === orderData.productId);
+    
+    const newOrder = {
+      id: `TRD${String(tradeOrders.length + 1).padStart(3, '0')}`,
       ...orderData,
-      totalAmount: orderData.quantity * orderData.unitPrice,
+      productName: product.name,
+      unitPrice: product.price,
+      currency: product.currency,
+      totalAmount: orderData.quantity * product.price,
+      importer: {
+        id: 'IMP001',
+        companyName: 'ImportCo India',
+        bankId: 'BANK001'
+      },
+      exporter: {
+        id: exporter.id,
+        companyName: exporter.companyName,
+        bankId: exporter.bankId || 'BANK002'
+      },
       status: 'pending_review',
-      date: new Date().toISOString().split('T')[0],
+      orderDate: new Date().toISOString().split('T')[0],
+      paymentStatus: 'pending',
+      bankVerified: false,
+      forexConverted: false,
       documents: []
     };
     
-    setTrades([...trades, newTrade]);
-    
-    // Notify exporter
-    addNotification({
-      userId: 'exporter',
-      message: `New trade order received: ${orderData.productName}`,
-      tradeId: newTrade.id,
-      type: 'new_order'
-    });
-    
-    return newTrade;
+    setTradeOrders([...tradeOrders, newOrder]);
+    return newOrder;
   };
 
-  // Update trade status
-  const updateTradeStatus = (tradeId, status) => {
-    const updatedTrades = trades.map(trade => 
-      trade.id === tradeId ? { ...trade, status } : trade
-    );
-    setTrades(updatedTrades);
-  };
-
-  // Initiate payment
-  const initiatePayment = (tradeId) => {
-    const updatedTrades = trades.map(trade =>
-      trade.id === tradeId ? { ...trade, status: 'payment_initiated' } : trade
-    );
-    setTrades(updatedTrades);
-  };
-
-  // Verify and convert funds
-  const verifyAndConvertFunds = (tradeId, convertedAmount) => {
-    const updatedTrades = trades.map(trade =>
-      trade.id === tradeId ? { 
-        ...trade, 
-        status: 'verified',
-        convertedAmount,
-        verifiedDate: new Date().toISOString()
-      } : trade
-    );
-    setTrades(updatedTrades);
-  };
-
-  // Transfer funds
-  const transferFunds = (tradeId) => {
-    const updatedTrades = trades.map(trade =>
-      trade.id === tradeId ? { ...trade, status: 'completed' } : trade
-    );
-    setTrades(updatedTrades);
-  };
-
-  // Add document to trade
-  const addDocument = (tradeId, document) => {
-    const updatedTrades = trades.map(trade =>
-      trade.id === tradeId ? { 
-        ...trade, 
-        documents: [...trade.documents, document] 
-      } : trade
-    );
-    setTrades(updatedTrades);
-  };
-
-  // Add notification
-  const addNotification = (notification) => {
-    setNotifications([...notifications, { ...notification, id: Date.now(), read: false }]);
-  };
-
-  // Mark notification as read
-  const markNotificationRead = (notificationId) => {
-    setNotifications(notifications.map(n => 
-      n.id === notificationId ? { ...n, read: true } : n
+  // Exporter accepts/rejects order
+  const updateOrderStatus = (orderId, status) => {
+    setTradeOrders(tradeOrders.map(order =>
+      order.id === orderId ? { ...order, status } : order
     ));
   };
 
-  // Get trades by status
-  const getTradesByStatus = (status) => {
-    return trades.filter(trade => trade.status === status);
+  // Importer initiates payment
+  const initiatePayment = (orderId) => {
+    setTradeOrders(tradeOrders.map(order =>
+      order.id === orderId ? { 
+        ...order, 
+        status: 'payment_initiated',
+        paymentStatus: 'processing'
+      } : order
+    ));
   };
 
-  // Get trade by ID
-  const getTradeById = (id) => {
-    return trades.find(trade => trade.id === id);
+  // Bank verifies payment
+  const verifyPayment = (orderId) => {
+    setTradeOrders(tradeOrders.map(order =>
+      order.id === orderId ? { 
+        ...order, 
+        bankVerified: true,
+        status: 'verified'
+      } : order
+    ));
   };
 
-  // Currency conversion
-  const convertCurrency = (amount, fromCurrency, toCurrency) => {
-    const usdAmount = amount / exchangeRates[fromCurrency];
-    return usdAmount * exchangeRates[toCurrency];
+  // Bank processes forex
+  const processForex = (orderId, convertedAmount) => {
+    setTradeOrders(tradeOrders.map(order =>
+      order.id === orderId ? { 
+        ...order, 
+        forexConverted: true,
+        convertedAmount,
+        status: 'forex_completed'
+      } : order
+    ));
+  };
+
+  // Bank completes transfer
+  const completeTransfer = (orderId) => {
+    setTradeOrders(tradeOrders.map(order =>
+      order.id === orderId ? { 
+        ...order, 
+        status: 'completed',
+        paymentStatus: 'completed'
+      } : order
+    ));
+  };
+
+  // Get bank details by SWIFT code
+  const validateBank = (swiftCode) => {
+    return banks.find(bank => bank.swiftCode === swiftCode);
   };
 
   return (
     <TradeContext.Provider value={{
-      trades,
-      notifications,
+      exporters,
+      tradeOrders,
+      banks,
       exchangeRates,
+      getAvailableProducts,
+      getExporterOrders,
+      getImporterOrders,
+      getPendingVerifications,
       createTradeOrder,
-      updateTradeStatus,
+      updateOrderStatus,
       initiatePayment,
-      verifyAndConvertFunds,
-      transferFunds,
-      addDocument,
-      getTradesByStatus,
-      getTradeById,
-      convertCurrency,
-      markNotificationRead
+      verifyPayment,
+      processForex,
+      completeTransfer,
+      validateBank
     }}>
       {children}
     </TradeContext.Provider>

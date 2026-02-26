@@ -1,51 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState('importer');
-  const navigate = useNavigate();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Demo login logic
-    if (email === 'rajesh@importco.in' && password === 'password') {
-      navigate('/importer/dashboard');
-    } else if (email === 'john@exportltd.com' && password === 'password') {
-      navigate('/exporter/dashboard');
-    } else if (email === 'admin@globalbank.com' && password === 'password') {
-      navigate('/bank/dashboard');
-    } else {
-      alert('Invalid credentials. Try demo accounts.');
-    }
-  };
-
-  const fillDemoAccount = (type) => {
-    if (type === 'importer') {
-      setEmail('rajesh@importco.in');
-      setPassword('password');
-      setSelectedRole('importer');
-    } else if (type === 'exporter') {
-      setEmail('john@exportltd.com');
-      setPassword('password');
-      setSelectedRole('exporter');
-    } else if (type === 'bank') {
-      setEmail('admin@globalbank.com');
-      setPassword('password');
-      setSelectedRole('bank');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
-      {/* Main Container */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-2 gap-8 items-center min-h-screen">
           
           {/* Left Column - Welcome Text */}
           <div className="text-white space-y-6">
-            <p className="text-blue-200 text-lg">Welcome back</p>
+            <p className="text-blue-200 text-lg">Welcome to</p>
             <h1 className="text-6xl font-bold mb-4">TradeFlow</h1>
             
             <div className="space-y-2">
@@ -58,6 +22,22 @@ const Home = () => {
               Manage trade orders, bank-mediated payments, real-time forex conversion, 
               and shipment tracking — all in one platform.
             </p>
+
+            {/* CTA Buttons */}
+            <div className="flex space-x-4 pt-4">
+              <Link
+                to="/login"
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition transform hover:scale-105"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition transform hover:scale-105"
+              >
+                Register
+              </Link>
+            </div>
 
             {/* Stats Section */}
             <div className="grid grid-cols-3 gap-4 pt-8">
@@ -76,86 +56,41 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Right Column - Login Form */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-auto w-full">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800">Sign in to your account</h2>
+          {/* Right Column - Info Card */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-white">
+            <h3 className="text-2xl font-bold mb-4">Why Choose TradeFlow?</h3>
+            <ul className="space-y-4">
+              <li className="flex items-start">
+                <svg className="w-6 h-6 text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Secure bank-mediated payments</span>
+              </li>
+              <li className="flex items-start">
+                <svg className="w-6 h-6 text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Real-time currency conversion</span>
+              </li>
+              <li className="flex items-start">
+                <svg className="w-6 h-6 text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>End-to-end shipment tracking</span>
+              </li>
+              <li className="flex items-start">
+                <svg className="w-6 h-6 text-green-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Automated document generation</span>
+              </li>
+            </ul>
+            
+            <div className="mt-8 p-4 bg-white/20 rounded-lg">
+              <p className="text-sm">
+                Join 12,000+ businesses already trading on our platform
+              </p>
             </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 transform hover:scale-[1.02]"
-              >
-                Sign In
-              </button>
-            </form>
-
-            {/* Demo Accounts Section */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-4">Demo accounts:</p>
-              <div className="space-y-3">
-                <button
-                  onClick={() => fillDemoAccount('importer')}
-                  className="w-full text-left px-4 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <span className="text-blue-600 font-medium">rajesh@importco.in</span>
-                  <span className="text-gray-500 text-sm ml-2">(Importer)</span>
-                </button>
-                
-                <button
-                  onClick={() => fillDemoAccount('exporter')}
-                  className="w-full text-left px-4 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <span className="text-blue-600 font-medium">john@exportltd.com</span>
-                  <span className="text-gray-500 text-sm ml-2">(Exporter)</span>
-                </button>
-                
-                <button
-                  onClick={() => fillDemoAccount('bank')}
-                  className="w-full text-left px-4 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <span className="text-blue-600 font-medium">admin@globalbank.com</span>
-                  <span className="text-gray-500 text-sm ml-2">(Bank)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Register Link */}
-            <p className="text-center mt-6 text-gray-600">
-              Don't have an account?{' '}
-              <button className="text-blue-600 font-semibold hover:underline">
-                Register
-              </button>
-            </p>
           </div>
         </div>
       </div>
